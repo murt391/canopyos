@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>canopyOS - Games</title>
+    <!-- Import Fira Code from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            min-height: 100vh;
+            background-color: rgb(25, 25, 25);
+            font-family: 'Fira Code', monospace;
+            color: #d4d4d4;
+            overflow-x: hidden;
+        }
+
+        /* Particle Canvas Background */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Container for content */
+        .app-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* Header Layout */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+        }
+
+        .page-title {
+            color: #ffffff;
+            font-size: 2.75rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            user-select: none;
+        }
+
+        /* Actions on the right (Back button + Expandable Search bar) */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Sleek Back Button */
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(35, 35, 35, 0.85);
+            border: 1px solid rgb(51, 51, 51);
+            color: #a0a0a0;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            flex-shrink: 0;
+        }
+
+        .back-btn:hover {
+            color: #ffffff;
+            background: rgba(45, 45, 45, 0.95);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(-2px);
+        }
+
+        .back-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Expandable Search Bar Component */
+        .search-box {
+            position: relative;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .search-input {
+            width: 44px;
+            height: 44px;
+            border-radius: 22px;
+            background: rgba(35, 35, 35, 0.85);
+            border: 1px solid rgb(51, 51, 51);
+            color: #ffffff;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            padding: 0 16px 0 44px;
+            outline: none;
+            cursor: pointer;
+            transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), 
+                        background 0.25s ease, 
+                        border-color 0.25s ease,
+                        box-shadow 0.25s ease;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .search-box:hover .search-input,
+        .search-input:focus {
+            width: 240px;
+            cursor: text;
+            background: rgba(40, 40, 40, 0.95);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            color: #a0a0a0;
+            transition: color 0.25s ease;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .search-box:hover .search-icon,
+        .search-input:focus ~ .search-icon {
+            color: #ffffff;
+        }
+
+        .search-input::placeholder {
+            color: #777777;
+            opacity: 0;
+            transition: opacity 0.2s ease 0.1s;
+        }
+
+        .search-box:hover .search-input::placeholder,
+        .search-input:focus::placeholder {
+            opacity: 1;
+        }
+
+        /* Horizontal Line Divider */
+        .divider {
+            width: 100%;
+            height: 1px;
+            background-color: rgb(51, 51, 51);
+            margin-bottom: 36px;
+            border: none;
+        }
+
+        /* Games Grid Layout */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        /* Game Card Styling */
+        .game-card {
+            background: rgb(35, 35, 35);
+            border: 1px solid rgb(51, 51, 51);
+            border-radius: 16px;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.25);
+            background: rgb(40, 40, 40);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Card Image Thumbnail */
+        .card-image-wrapper {
+            width: 100%;
+            height: 150px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgb(25, 25, 25);
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.35s ease;
+        }
+
+        .game-card:hover .card-image-wrapper img {
+            transform: scale(1.05);
+        }
+
+        /* Card Title */
+        .game-title {
+            color: #ffffff;
+            font-size: 1.15rem;
+            font-weight: 400;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        /* Card Description */
+        .game-description {
+            color: #999999;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        /* Empty state for search */
+        .no-results {
+            grid-column: 1 / -1;
+            padding: 60px 0;
+            text-align: center;
+            color: #666666;
+            font-size: 0.95rem;
+            display: none;
+        }
+
+        @media (max-width: 640px) {
+            .page-title {
+                font-size: 2rem;
+            }
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Particle canvas overlay -->
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="page-title">Games</h1>
+
+            <div class="header-actions">
+                <!-- Back arrow link to index.html -->
+                <a href="index.html" class="back-btn" aria-label="Back to Home" title="Back to Home">
+                    <svg viewBox="0 0 24 24">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                </a>
+
+                <!-- Expanding Search Bar -->
+                <div class="search-box">
+                    <input type="text" id="search-input" class="search-input" placeholder="Search..." autocomplete="off">
+                    <div class="search-icon">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Horizontal Divider -->
+        <hr class="divider">
+
+        <!-- Games Grid -->
+        <main class="games-grid" id="games-grid">
+            <!-- Populated via JavaScript -->
+        </main>
+        
+        <div id="no-results" class="no-results">
+            No games found matching your search.
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // EASY TO EDIT GAMES CONFIGURATION ARRAY
+        // Change name, description, image, and link target
+        // ==========================================
+        const GAMES_DATA = [
+            {
+                name: "10 Minutes Till Dawn",
+                description: "A zombie shootout game where the goal is to last 10 minutes without dying.",
+                image: "https://raw.githubusercontent.com/murt391/canopyos/main/Games/Icons/10mins.png",
+                link: "Games/10mins.html"
+            },
+        ];
+
+        // Render Games Grid
+        function renderGames(games) {
+            const grid = document.getElementById('games-grid');
+            const noResults = document.getElementById('no-results');
+            
+            grid.innerHTML = '';
+
+            if (games.length === 0) {
+                noResults.style.display = 'block';
+                return;
+            } else {
+                noResults.style.display = 'none';
+            }
+
+            games.forEach(game => {
+                const card = document.createElement('a');
+                card.href = game.link;
+                card.className = 'game-card';
+
+                card.innerHTML = `
+                    <div class="card-image-wrapper">
+                        <img src="${game.image}" alt="${game.name}" onerror="this.onerror=null; this.src='https://placehold.co/500x300/191919/ffffff?text=${encodeURIComponent(game.name)}';">
+                    </div>
+                    <h2 class="game-title">${game.name}</h2>
+                    <p class="game-description">${game.description}</p>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Real-time Search Filter
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const filtered = GAMES_DATA.filter(game => 
+                game.name.toLowerCase().includes(query) || 
+                game.description.toLowerCase().includes(query)
+            );
+            renderGames(filtered);
+        });
+
+        // Initialize Grid
+        renderGames(GAMES_DATA);
+
+        // ==========================================
+        // CONNECTED PARTICLES CANVAS BACKGROUND
+        // ==========================================
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = 0;
+        let height = 0;
+        let particles = [];
+
+        const PARTICLE_COUNT = 55;
+        const PARTICLE_COLOR = 'rgb(51, 51, 51)';
+        const LINE_COLOR_BASE = '51, 51, 51';
+        const SPEED_MULTIPLIER = 0.1;
+        const MOUSE_RADIUS = 150;
+
+        const mouse = { x: null, y: null };
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        window.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = Math.max(window.innerHeight, document.body.scrollHeight);
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.radius = Math.random() * 1.5 + 1.2;
+                this.angle = Math.random() * Math.PI * 2;
+                this.baseSpeed = Math.random() * 1.0 + 0.5;
+            }
+
+            update() {
+                const currentSpeed = this.baseSpeed * SPEED_MULTIPLIER;
+                this.x += Math.cos(this.angle) * currentSpeed;
+                this.y += Math.sin(this.angle) * currentSpeed;
+
+                if (this.x < -10) this.x = width + 10;
+                if (this.x > width + 10) this.x = -10;
+                if (this.y < -10) this.y = height + 10;
+                if (this.y > height + 10) this.y = -10;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = PARTICLE_COLOR;
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function connectParticles() {
+            if (mouse.x === null || mouse.y === null) return;
+
+            const nearParticles = [];
+            for (let i = 0; i < particles.length; i++) {
+                const dx = particles[i].x - mouse.x;
+                const dy = particles[i].y - mouse.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < MOUSE_RADIUS) {
+                    nearParticles.push({
+                        particle: particles[i],
+                        dist: dist
+                    });
+                }
+            }
+
+            for (let i = 0; i < nearParticles.length; i++) {
+                const pA = nearParticles[i].particle;
+                const distToMouse = nearParticles[i].dist;
+                const mouseAlpha = (1 - distToMouse / MOUSE_RADIUS) * 0.8;
+
+                ctx.beginPath();
+                ctx.moveTo(pA.x, pA.y);
+                ctx.lineTo(mouse.x, mouse.y);
+                ctx.strokeStyle = `rgba(${LINE_COLOR_BASE}, ${mouseAlpha})`;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+
+                for (let j = i + 1; j < nearParticles.length; j++) {
+                    const pB = nearParticles[j].particle;
+                    const pdx = pA.x - pB.x;
+                    const pdy = pA.y - pB.y;
+                    const pDist = Math.sqrt(pdx * pdx + pdy * pdy);
+
+                    if (pDist < MOUSE_RADIUS * 0.8) {
+                        const interAlpha = (1 - pDist / (MOUSE_RADIUS * 0.8)) * mouseAlpha;
+                        ctx.beginPath();
+                        ctx.moveTo(pA.x, pA.y);
+                        ctx.lineTo(pB.x, pB.y);
+                        ctx.strokeStyle = `rgba(${LINE_COLOR_BASE}, ${interAlpha})`;
+                        ctx.lineWidth = 0.6;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+
+            connectParticles();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+
+        window.onload = function() {
+            resize();
+            animate();
+        };
+    </script>
+</body>
+</html>
